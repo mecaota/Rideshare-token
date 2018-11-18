@@ -20,7 +20,7 @@ contract RideshareToken is ERC721Full, ERC721MetadataMintable {
     struct Demand{
         bool available;
         uint cost;
-        uint reg_date;
+        uint upd_date;
         uint est_date;
         uint passengers;
         Spot dept;
@@ -30,7 +30,8 @@ contract RideshareToken is ERC721Full, ERC721MetadataMintable {
     mapping(uint=>Demand) private demands;
     uint256 private nextTokenId = 0;
     
-    constructor(string name, string symbol) public
+    constructor(string name, string symbol)
+    public
     ERC721Full(name, symbol)
     {}
 
@@ -56,7 +57,8 @@ contract RideshareToken is ERC721Full, ERC721MetadataMintable {
         {
         uint256 tokenId = _generateTokenId();
         super._mint(msg.sender, tokenId);
-        updateToken (
+        _updateToken (
+                true,
                 tokenId,
                 _cost,
                 _est_date,
@@ -89,11 +91,12 @@ contract RideshareToken is ERC721Full, ERC721MetadataMintable {
         _removeTokenFrom(from, tokenId);
     }
 
-    function updateToken (
-        uint _tokenId,
-        uint _cost,
-        uint _est_date,
-        uint _passengers,
+    function _updateToken (
+        bool available,
+        uint tokenId,
+        uint cost,
+        uint est_date,
+        uint passengers,
         string dept_name,
         int32 dept_lat,
         int32 dept_lon,
@@ -101,25 +104,34 @@ contract RideshareToken is ERC721Full, ERC721MetadataMintable {
         int32 arrv_lat,
         int32 arrv_lon
         )
-        public
+        private
         {
-        require(_isApprovedOrOwner(msg.sender, _tokenId));
-        demands[_tokenId] = Demand({
-            available:true,
-            cost:_cost,
-            reg_date:block.timestamp,
-            est_date:_est_date,
-            passengers:_passengers,
-            dept:Spot({
-                name:dept_name,
-                latitude:dept_lat,
-                longitude:dept_lon
-            }),
-            arrv:Spot({
-                name:arrv_name,
-                latitude:arrv_lat,
-                longitude:arrv_lon
-            })
-        });
+        require(_isApprovedOrOwner(msg.sender, tokenId));
+        demands[tokenId].upd_date = block.timestamp;
+        demands[tokenId].available = available;
+        
+        if(cost != 0){
+            demands[tokenId].cost = cost;
         }
+        
+        if(est_date != 0){
+            demands[tokenId].est_date = est_date;
+        }
+        
+        if(passengers != 0){
+            demands[tokenId].passengers = passengers;
+        }
+        
+        if(bytes(dept_name).length!=0 && dept_lat!=0 && dept_lon!=0){
+            demands[tokenId].dept.name = dept_name;
+            demands[tokenId].dept.latitude = dept_lat;
+            demands[tokenId].dept.longitude = dept_lon;
+        }
+        
+        if(bytes(arrv_name).length!=0 && arrv_lat!=0 && arrv_lon!=0){
+            demands[tokenId].arrv.name = arrv_name;
+            demands[tokenId].arrv.latitude = arrv_lat;
+            demands[tokenId].arrv.longitude = arrv_lon;
+        }
+    }
 }
