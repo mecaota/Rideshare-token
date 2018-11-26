@@ -29,6 +29,7 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
     struct Ticket{
         address purchaser;
         address minter;
+        uint256 mint_date;
         uint256 demandId;
         uint32 price;
     }
@@ -96,6 +97,7 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
         ticket2demand[ticketId] = demandId;
         _tickets[ticketId].purchaser = purchaser;
         _tickets[ticketId].minter = msg.sender;
+        _tickets[ticketId].mint_date = block.timestamp;
         _tickets[ticketId].demandId = demandId;
         _tickets[ticketId].price = price;
         return ticketId;
@@ -191,13 +193,14 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
         returns(
             uint256,
             uint256,
+            uint256,
             uint32,
             address
         ){
         Ticket memory ticket = _tickets[ticketId];
         require(ticket.demandId != 0);
         require(_isApprovedOrOwner(msg.sender, ticketId) || ticket.minter==msg.sender);
-        return(ticketId, ticket.demandId, ticket.price, ticket.minter);
+        return(ticketId, ticket.mint_date, ticket.demandId, ticket.price, ticket.minter);
     }
     
     function changeTicketPrice(uint256 ticketId, uint32 price) public returns(bool){
