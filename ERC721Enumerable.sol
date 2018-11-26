@@ -17,9 +17,11 @@ contract ERC721Enumerable is ERC165, ERC721, IERC721Enumerable {
 
     // Array with all token ids, used for enumeration
     uint256[] private _allTokens;
+    uint256[] private _allDemandTokens;
 
     // Mapping from token id to position in the allTokens array
     mapping(uint256 => uint256) private _allTokensIndex;
+    mapping(uint256 => uint256) private _allDemandTokensIndex;
 
     bytes4 private constant _InterfaceId_ERC721Enumerable = 0x780e9d63;
     /**
@@ -55,6 +57,10 @@ contract ERC721Enumerable is ERC165, ERC721, IERC721Enumerable {
     function totalSupply() public view returns (uint256) {
         return _allTokens.length;
     }
+    
+    function totalDemandSupply() public view returns (uint256) {
+        return _allDemandTokens.length;
+    }
 
     /**
      * @dev Gets the token ID at a given index of all the tokens in this contract
@@ -65,6 +71,11 @@ contract ERC721Enumerable is ERC165, ERC721, IERC721Enumerable {
     function tokenByIndex(uint256 index) public view returns (uint256) {
         require(index < totalSupply());
         return _allTokens[index];
+    }
+    
+    function DemandByIndex(uint256 index) public view returns (uint256) {
+        require(index < totalDemandSupply());
+        return _allDemandTokens[index];
     }
 
     /**
@@ -122,6 +133,14 @@ contract ERC721Enumerable is ERC165, ERC721, IERC721Enumerable {
         _allTokensIndex[tokenId] = _allTokens.length;
         _allTokens.push(tokenId);
     }
+    
+    function _mintDemand(address to, uint256 tokenId) internal {
+        _mint(to, tokenId);
+        
+        // function for demand token array
+        _allDemandTokensIndex[tokenId] = _allDemandTokens.length;
+        _allDemandTokens.push(tokenId);
+    }
 
     /**
      * @dev Internal function to burn a specific token
@@ -145,7 +164,24 @@ contract ERC721Enumerable is ERC165, ERC721, IERC721Enumerable {
         _allTokensIndex[lastToken] = tokenIndex;
     }
     
-    function getAllTokens() public view returns(uint256[]){
-        return _allTokens;
+    // _burn function and function of array relation to demandtoken
+    function _burnDemand(address owner, uint256 tokenId) internal {
+        _burn(owner, tokenId);
+
+        // Reorg all tokens array
+        uint256 tokenIndex = _allDemandTokensIndex[tokenId];
+        uint256 lastTokenIndex = _allDemandTokens.length.sub(1);
+        uint256 lastToken = _allDemandTokens[lastTokenIndex];
+
+        _allDemandTokens[tokenIndex] = lastToken;
+        _allDemandTokens[lastTokenIndex] = 0;
+
+        _allDemandTokens.length--;
+        _allDemandTokensIndex[tokenId] = 0;
+        _allDemandTokensIndex[lastToken] = tokenIndex;
+    }
+    
+    function getAllDemandTokens() public view returns(uint256[]){
+        return _allDemandTokens;
     }
 }
