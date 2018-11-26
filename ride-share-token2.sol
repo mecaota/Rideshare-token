@@ -1,4 +1,4 @@
-pragma solidity 0.4.25;
+pragma solidity 0.4.24;
 
 import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/token/ERC721/ERC721Enumerable.sol";
 import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/payment/PullPayment.sol";
