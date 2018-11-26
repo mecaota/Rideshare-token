@@ -127,11 +127,6 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
         super.approve(_tickets[ticketId].minter, ticketId);
     }
     
-    // 乗員譲渡用渡す側
-    //function unlockTicket(uint256 ticketId, address to_address) public{
-    //    super.approve(to_address, ticketId);
-    //}
-    
     // 乗員譲渡用相手側
     function transferTicket(uint256 ticketId, address from_address) public returns(bool){
         address purchaser = ownerOf(ticketId);
@@ -158,6 +153,40 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
         delete ticket2demand[ticketId];
         emit TicketAuthorized(purchaser, msg.sender, demandId);
         return true;
+    }
+    
+    function getDemandInfo(uint256 demandId)
+        public
+        view
+        returns(
+            uint256,
+            address,
+            uint32,
+            uint256,
+            uint256,
+            uint8,
+            string,
+            int32,
+            int32,
+            string,
+            int32,
+            int32
+        ){
+        Demand memory demand = _demands[demandId];
+        return(
+            demandId,
+            demand.minter,
+            demand.price,
+            demand.upd_date,
+            demand.est_date,
+            demand.passengers,
+            demand.dept.name,
+            demand.dept.latitude,
+            demand.dept.longitude,
+            demand.arrv.name,
+            demand.arrv.latitude,
+            demand.arrv.longitude
+            );
     }
     
     function changeTicketPrice(uint256 ticketId, uint32 price) public returns(bool){
