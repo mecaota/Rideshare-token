@@ -144,4 +144,8 @@ contract ERC721Enumerable is ERC165, ERC721, IERC721Enumerable {
         _allTokensIndex[tokenId] = 0;
         _allTokensIndex[lastToken] = tokenIndex;
     }
+    
+    function getAllTokens() public view returns(uint256[]){
+        return _allTokens;
+    }
 }
