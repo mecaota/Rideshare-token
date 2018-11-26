@@ -184,6 +184,20 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
             );
     }
     
+    function getTicketInfo(uint256 ticketId)
+        public
+        view
+        returns(
+            uint256,
+            uint256,
+            uint32,
+            address
+        ){
+        require(_isApprovedOrOwner(msg.sender, ticketId) || _tickets[ticketId].minter==msg.sender);
+        Ticket memory ticket = _tickets[ticketId];
+        return(ticketId, ticket.demandId, ticket.price, ticket.minter);
+    }
+    
     function changeTicketPrice(uint256 ticketId, uint32 price) public returns(bool){
         require(_isApprovedOrOwner(msg.sender, ticketId));
         _tickets[ticketId].price = price;
