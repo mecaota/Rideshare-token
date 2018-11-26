@@ -122,11 +122,6 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
         return ticketId;
     }
     
-    // 乗員改札用
-    function showTicket(uint256 ticketId) public{
-        super.approve(_tickets[ticketId].minter, ticketId);
-    }
-    
     // 乗員譲渡用相手側
     function transferTicket(uint256 ticketId, address from_address) public returns(bool){
         address purchaser = ownerOf(ticketId);
