@@ -112,8 +112,10 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
         address minter = ownerOf(demandId);
         require(minter != address(0));
         uint32 price = demands[demandId].price;
-        require(price == msg.value);
-        _asyncTransfer(minter, price);
+        if(price>0){
+            require(price == msg.value);
+            _asyncTransfer(minter, price);
+        }
         demands[demandId].passengers--;
         uint256 ticketId = mint_ticket(msg.sender, demandId, price);
         emit BoughtTicket(msg.sender, price);
