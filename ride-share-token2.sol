@@ -37,17 +37,17 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
     event ChangeDemand(uint indexed demandId, string changed);
     event TicketAuthorized(address indexed purchaser, address indexed minter, uint indexed demandId);
     
-    mapping(uint=>Demand) private demands;
-    mapping(uint=>Ticket) private tickets;
+    mapping(uint=>Demand) private _demands;
+    mapping(uint=>Ticket) private _tickets;
     mapping(uint256=>uint256) ticket2demand;
     
-    uint256 private nextTokenId = 0;
+    uint256 private _nextTokenId = 0;
     
     constructor() public {}
 
     function _generateTokenId() private returns(uint256) {
-        nextTokenId = nextTokenId.add(1);
-        return nextTokenId;
+        _nextTokenId = _nextTokenId.add(1);
+        return _nextTokenId;
     }
     
     function mint_demand(
@@ -94,29 +94,29 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
         uint256 ticketId = _generateTokenId();
         super._mint(minter, ticketId);
         ticket2demand[ticketId] = demandId;
-        tickets[ticketId].purchaser = purchaser;
-        tickets[ticketId].minter = msg.sender;
-        tickets[ticketId].demandId = demandId;
-        tickets[ticketId].price = price;
+        _tickets[ticketId].purchaser = purchaser;
+        _tickets[ticketId].minter = msg.sender;
+        _tickets[ticketId].demandId = demandId;
+        _tickets[ticketId].price = price;
         return ticketId;
     }
         
     function burn(uint256 demandId) public {
         require(_isApprovedOrOwner(msg.sender, demandId));
         super._burn(ownerOf(demandId), demandId);
-        delete demands[demandId];
+        delete _demands[demandId];
     }
     
     function buyTicket(uint256 demandId) public payable returns(uint256){
-        require(demands[demandId].passengers > 0);
+        require(_demands[demandId].passengers > 0);
         address minter = ownerOf(demandId);
         require(minter != address(0));
-        uint32 price = demands[demandId].price;
+        uint32 price = _demands[demandId].price;
         if(price>0){
             require(price == msg.value);
             _asyncTransfer(minter, price);
         }
-        demands[demandId].passengers--;
+        _demands[demandId].passengers--;
         uint256 ticketId = mint_ticket(msg.sender, demandId, price);
         emit BoughtTicket(msg.sender, price);
         return ticketId;
@@ -124,7 +124,7 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
     
     // 乗員改札用
     function showTicket(uint256 ticketId) public{
-        super.approve(tickets[ticketId].minter, ticketId);
+        super.approve(_tickets[ticketId].minter, ticketId);
     }
     
     // 乗員譲渡用渡す側
@@ -138,7 +138,7 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
         require(purchaser != address(0));
         require(purchaser != address(this));
         require(from_address == getApproved(ticketId));
-        require(msg.sender == tickets[ticketId].minter);
+        require(msg.sender == _tickets[ticketId].minter);
         safeTransferFrom(purchaser, msg.sender, ticketId);
         return true;
     }
@@ -149,12 +149,12 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
         require(purchaser != address(0));
         require(purchaser != address(this));
         require(msg.sender == getApproved(ticketId));
-        require(msg.sender == tickets[ticketId].minter);
-        uint256 demandId = tickets[ticketId].demandId;
+        require(msg.sender == _tickets[ticketId].minter);
+        uint256 demandId = _tickets[ticketId].demandId;
         require(ticket2demand[ticketId] == demandId);
         safeTransferFrom(purchaser, msg.sender, ticketId);
         super._burn(msg.sender, ticketId);
-        delete tickets[ticketId];
+        delete _tickets[ticketId];
         delete ticket2demand[ticketId];
         emit TicketAuthorized(purchaser, msg.sender, demandId);
         return true;
@@ -162,7 +162,7 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
     
     function changeTicketPrice(uint256 ticketId, uint32 price) public returns(bool){
         require(_isApprovedOrOwner(msg.sender, ticketId));
-        tickets[ticketId].price = price;
+        _tickets[ticketId].price = price;
         return true;
     }
     
@@ -186,7 +186,7 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
     
     
     function addremovePassengers(uint256 demandId, int8 change_passengers) public returns(bool){
-        int8 passengers = change_passengers + int8(demands[demandId].passengers);
+        int8 passengers = change_passengers + int8(_demands[demandId].passengers);
         require(passengers > 0);
         _updateDemandToken (demandId, 0, 0, uint8(passengers), "", 0, 0, "", 0, 0);
         emit ChangeDemand(demandId, "changed passengers");
@@ -214,30 +214,30 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
         private
         {
         require(_isApprovedOrOwner(msg.sender, demandId));
-        demands[demandId].upd_date = block.timestamp;
+        _demands[demandId].upd_date = block.timestamp;
         
         if(price != 0){
-            demands[demandId].price = price;
+            _demands[demandId].price = price;
         }
         
         if(est_date != 0){
-            demands[demandId].est_date = est_date;
+            _demands[demandId].est_date = est_date;
         }
         
         if(passengers != 0){
-            demands[demandId].passengers = passengers;
+            _demands[demandId].passengers = passengers;
         }
         
         if(bytes(dept_name).length!=0 && dept_lat!=0 && dept_lon!=0){
-            demands[demandId].dept.name = dept_name;
-            demands[demandId].dept.latitude = dept_lat;
-            demands[demandId].dept.longitude = dept_lon;
+            _demands[demandId].dept.name = dept_name;
+            _demands[demandId].dept.latitude = dept_lat;
+            _demands[demandId].dept.longitude = dept_lon;
         }
         
         if(bytes(arrv_name).length!=0 && arrv_lat!=0 && arrv_lon!=0){
-            demands[demandId].arrv.name = arrv_name;
-            demands[demandId].arrv.latitude = arrv_lat;
-            demands[demandId].arrv.longitude = arrv_lon;
+            _demands[demandId].arrv.name = arrv_name;
+            _demands[demandId].arrv.latitude = arrv_lat;
+            _demands[demandId].arrv.longitude = arrv_lon;
         }
     }
 }
