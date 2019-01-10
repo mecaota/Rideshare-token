@@ -52,8 +52,8 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
     }
     
     function mint_demand(
-        uint32 price,
         uint256 est_date,
+        uint32 price,
         uint8 passengers,
         string dept_name,
         int32 dept_lat,
@@ -66,11 +66,11 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
         returns (uint256)
         {
         uint256 demandId = _generateTokenId();
-        super._mint(msg.sender, demandId);
+        super._mintDemand(msg.sender, demandId);
         _updateDemandToken (
                 demandId,
-                price,
                 est_date,
+                price,
                 passengers,
                 dept_name,
                 dept_lat,
@@ -158,9 +158,9 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
         returns(
             uint256,
             address,
+            uint256,
+            uint256,
             uint32,
-            uint256,
-            uint256,
             uint8,
             string,
             int32,
@@ -174,9 +174,9 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
         return(
             demandId,
             demand.minter,
-            demand.price,
             demand.upd_date,
             demand.est_date,
+            demand.price,
             demand.passengers,
             demand.dept.name,
             demand.dept.latitude,
@@ -200,7 +200,13 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
         Ticket memory ticket = _tickets[ticketId];
         require(ticket.demandId != 0);
         require(_isApprovedOrOwner(msg.sender, ticketId) || ticket.minter==msg.sender);
-        return(ticketId, ticket.mint_date, ticket.demandId, ticket.price, ticket.minter);
+        return(
+            ticketId,
+            ticket.mint_date,
+            ticket.demandId,
+            ticket.price,
+            ticket.minter
+            );
     }
     
     function changeTicketPrice(uint256 ticketId, uint32 price) public returns(bool){
@@ -208,44 +214,11 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
         _tickets[ticketId].price = price;
         return true;
     }
-    
-    function changeDept_spot(uint256 demandId, string name, int32 latitude, int32 longitude) public returns(bool){
-        _updateDemandToken (demandId, 0, 0, 0, name, latitude, longitude, "", 0, 0);
-        emit ChangeDemand(demandId, "changed departure spot");
-        return true;
-    }
-    
-    function changeArrv_spot(uint256 demandId, string name, int32 latitude, int32 longitude) public returns(bool){
-        _updateDemandToken (demandId, 0, 0, 0, "", 0, 0, name, latitude, longitude);
-        emit ChangeDemand(demandId, "changed arrival spot");
-        return true;
-    }
-    
-    function changeEst_date(uint256 demandId, uint256 est_date) public returns(bool){
-        _updateDemandToken (demandId, 0, est_date, 0, "", 0, 0, "", 0, 0);
-        emit ChangeDemand(demandId, "changed estimated time");
-        return true;
-    }
-    
-    
-    function addremovePassengers(uint256 demandId, int8 change_passengers) public returns(bool){
-        int8 passengers = change_passengers + int8(_demands[demandId].passengers);
-        require(passengers > 0);
-        _updateDemandToken (demandId, 0, 0, uint8(passengers), "", 0, 0, "", 0, 0);
-        emit ChangeDemand(demandId, "changed passengers");
-        return true;
-    }
-    
-    function changeDemandPrice(uint256 demandId, uint32 price) public returns(bool){
-        _updateDemandToken (demandId, price, 0, 0, "", 0, 0, "", 0, 0);
-        emit ChangeDemand(demandId, "change price");
-        return true;
-    }
 
-    function _updateDemandToken (
+    function updateDemandToken (
         uint256 demandId,
-        uint32 price,
         uint256 est_date,
+        uint32 price,
         uint8 passengers,
         string dept_name,
         int32 dept_lat,
@@ -261,26 +234,31 @@ contract RideshareDemand is ERC721Enumerable, PullPayment{
         
         if(price != 0){
             _demands[demandId].price = price;
+            emit ChangeDemand(demandId, "change price");
         }
         
         if(est_date != 0){
             _demands[demandId].est_date = est_date;
+            emit ChangeDemand(demandId, "changed estimated time");
         }
         
         if(passengers != 0){
             _demands[demandId].passengers = passengers;
+            emit ChangeDemand(demandId, "changed passengers");
         }
         
         if(bytes(dept_name).length!=0 && dept_lat!=0 && dept_lon!=0){
             _demands[demandId].dept.name = dept_name;
             _demands[demandId].dept.latitude = dept_lat;
             _demands[demandId].dept.longitude = dept_lon;
+            emit ChangeDemand(demandId, "changed departure spot");
         }
         
         if(bytes(arrv_name).length!=0 && arrv_lat!=0 && arrv_lon!=0){
             _demands[demandId].arrv.name = arrv_name;
             _demands[demandId].arrv.latitude = arrv_lat;
             _demands[demandId].arrv.longitude = arrv_lon;
+            emit ChangeDemand(demandId, "changed arrival spot");
         }
     }
 }
