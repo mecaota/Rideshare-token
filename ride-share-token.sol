@@ -55,8 +55,7 @@ contract RideshareDemand is ERC721Enumerable{
         {   
             if(balanceOf(msg.sender) > 0){
                 for(uint256 i = 0; balanceOf(msg.sender) > i; i++){
-                    uint256 demand_id = tokenOfOwnerByIndex(msg.sender, i);
-                    require(isPurcheser(demand_id));
+                    require(_isMyTicket(tokenOfOwnerByIndex(msg.sender, i)));
                 }
             }
             uint256 item_id = 0;
@@ -88,23 +87,37 @@ contract RideshareDemand is ERC721Enumerable{
     }
         
     function burnMintedDemand() public {
-        for(uint256 i = 0; balanceOf(msg.sender) > i; i++){
+        for(uint256 i = 0; i < balanceOf(msg.sender); i++){
             uint256 demand_id = tokenOfOwnerByIndex(msg.sender, i);
             require(_isApprovedOrOwner(msg.sender, demand_id));
-            if(isPurcheser(demand_id)){
+            if(!_isMyTicket(demand_id)){
                 burn(demand_id);
             }
         }
     }
     
-    function isPurcheser(uint256 demand_id) public view returns(bool){
+    // If purchaser is msg.sender, return true
+    function _isMyTicket(uint256 demand_id) private view returns(bool){
         return (_demands[demand_id].purchaser==msg.sender);
     }
     
-    //todo send to purcheser
+    // If purchaser is not null, return true
+    function _isinPurcheser(uint256 demand_id) private view returns(bool){
+        return (_demands[demand_id].purchaser!=address(0));
+    }
+    
+    function approveAllMintedTickets() public {
+        for(uint256 i = 0; i < balanceOf(msg.sender); i++){
+            uint256 demand_id = tokenOfOwnerByIndex(msg.sender, i);
+            require(_isApprovedOrOwner(msg.sender, demand_id));
+            if(!_isMyTicket(demand_id) && !_isinPurcheser(demand_id)){
+                approve(_demands[demand_id].purchaser, demand_id);
+            }
+        }
+    }
     
     function buyTicket(uint256 demand_id) public{
-        require(_address2demand[msg.sender] == 0);
+        require(_isinPurcheser(demand_id));
         _demands[demand_id].purchaser = msg.sender;
         _address2demand[msg.sender] = demand_id;
     }
@@ -126,7 +139,7 @@ contract RideshareDemand is ERC721Enumerable{
         ){
         Demand memory demand = _demands[demand_id];
         return(
-            (demand.purchaser==address(0)),
+            _isMyTicket(demand_id),
             demand.item_id,
             demand.price,
             demand.est_date,
@@ -152,7 +165,7 @@ contract RideshareDemand is ERC721Enumerable{
     )
     private
     {
-        for(uint i=0; balanceOf(msg.sender) > i; i++){
+        for(uint i=0; i< balanceOf(msg.sender); i++){
             uint256 demand_id = tokenOfOwnerByIndex(msg.sender, i);
             require(super._isApprovedOrOwner(msg.sender, demand_id));
             _demands[demand_id].item_id = item_id;
