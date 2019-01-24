@@ -30,7 +30,6 @@ contract RideshareDemand is ERC721Enumerable{
     
     mapping(uint256=>Demand) private _demands; // token_id to demand(=item_id) struct
     mapping(uint256=>uint256[]) private _itemid2demand; // item_id to demand
-    mapping(address=>uint256) private _address2demand; //address to demand_id
     
     uint256 private _nextTokenId = 0;
 
@@ -54,7 +53,7 @@ contract RideshareDemand is ERC721Enumerable{
         returns (bool)
         {   
             if(balanceOf(msg.sender) > 0){
-                for(uint256 i = 0; balanceOf(msg.sender) > i; i++){
+                for(uint256 i = 0; i < balanceOf(msg.sender); i++){
                     require(_isMyTicket(tokenOfOwnerByIndex(msg.sender, i)));
                 }
             }
@@ -82,6 +81,7 @@ contract RideshareDemand is ERC721Enumerable{
         }
         
     function burn(uint256 demand_id) public {
+        require(_isApprovedOrOwner(msg.sender, demand_id));
         super._burn(msg.sender, demand_id);
         delete _demands[demand_id];
     }
@@ -102,7 +102,7 @@ contract RideshareDemand is ERC721Enumerable{
     }
     
     // If purchaser is not null, return true
-    function _isinPurcheser(uint256 demand_id) private view returns(bool){
+    function _isPurchesed(uint256 demand_id) private view returns(bool){
         return (_demands[demand_id].purchaser!=address(0));
     }
     
@@ -110,22 +110,24 @@ contract RideshareDemand is ERC721Enumerable{
         for(uint256 i = 0; i < balanceOf(msg.sender); i++){
             uint256 demand_id = tokenOfOwnerByIndex(msg.sender, i);
             require(_isApprovedOrOwner(msg.sender, demand_id));
-            if(!_isMyTicket(demand_id) && !_isinPurcheser(demand_id)){
-                approve(_demands[demand_id].purchaser, demand_id);
+            if(!_isMyTicket(demand_id) && !_isPurchesed(demand_id)){
+                address purchaser = _demands[demand_id].purchaser;
+                approve(purchaser, demand_id);
             }
         }
     }
     
     function buyTicket(uint256 demand_id) public{
-        require(_isinPurcheser(demand_id));
+        require(!_isPurchesed(demand_id));
+        require(ownerOf(demand_id) != msg.sender);
         _demands[demand_id].purchaser = msg.sender;
-        _address2demand[msg.sender] = demand_id;
     }
     
     function getDemandInfo(uint256 demand_id)
         public
         view
         returns(
+            bool,
             bool,
             uint256,
             uint32,
@@ -140,6 +142,7 @@ contract RideshareDemand is ERC721Enumerable{
         Demand memory demand = _demands[demand_id];
         return(
             _isMyTicket(demand_id),
+            _isPurchesed(demand_id),
             demand.item_id,
             demand.price,
             demand.est_date,
