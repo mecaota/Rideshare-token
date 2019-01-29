@@ -32,6 +32,10 @@ contract RideshareDemand is ERC721Enumerable{
     mapping(uint256=>uint256[]) private _itemid2demand; // item_id to demand
     
     uint256 private _nextTokenId = 0;
+    int32 private max_latitude = 900000000;
+    int32 private min_latidude = -900000000;
+    int32 private max_longitude = 1800000000;
+    int32 private min_longitude = -1800000000;
 
     function _generateTokenId() private returns(uint256) {
         _nextTokenId = _nextTokenId.add(1);
@@ -52,6 +56,9 @@ contract RideshareDemand is ERC721Enumerable{
         public
         returns (bool)
         {   
+            require(bytes(dept_name).length!=0 || bytes(arrv_name).length!=0 || passengers!=0);
+            require(min_latidude<=dept_latitude && dept_latitude<=max_latitude && min_longitude<=dept_longitude && dept_longitude<=max_longitude);
+            require(min_latidude<=arrv_latitude && arrv_latitude<=max_latitude && min_longitude<=arrv_longitude && arrv_longitude<=max_longitude);
             if(balanceOf(msg.sender) > 0){
                 for(uint256 i = 0; i < balanceOf(msg.sender); i++){
                     require(_isOwnBoughtDemand(tokenOfOwnerByIndex(msg.sender, i)));
