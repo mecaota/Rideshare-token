@@ -24,8 +24,8 @@ contract RideshareDemand is ERC721Enumerable{
         Spot arrv;
     }
     
-    event BoughtTicket(address indexed purchaser, uint256 price);
-    event ChangeDemand(uint indexed demandId, string changed);
+    event BoughtDemand(uint256 indexed demand_id, uint32 price);
+    event ChangeDemand(uint256 indexed demand_id, string changed);
     //event TicketAuthorized(address indexed purchaser, address indexed minter, uint indexed demandId);
     
     mapping(uint256=>Demand) private _demands; // token_id to demand(=item_id) struct
@@ -54,7 +54,7 @@ contract RideshareDemand is ERC721Enumerable{
         {   
             if(balanceOf(msg.sender) > 0){
                 for(uint256 i = 0; i < balanceOf(msg.sender); i++){
-                    require(_isMyTicket(tokenOfOwnerByIndex(msg.sender, i)));
+                    require(_isOwnBoughtDemand(tokenOfOwnerByIndex(msg.sender, i)));
                 }
             }
             uint256 item_id = 0;
@@ -82,22 +82,23 @@ contract RideshareDemand is ERC721Enumerable{
         
     function burn(uint256 demand_id) public {
         require(_isApprovedOrOwner(msg.sender, demand_id));
-        super._burn(msg.sender, demand_id);
-        delete _demands[demand_id];
+        if(_isPurchesed(demand_id) ? _isOwnBoughtDemand(demand_id)&&_isTimeOver(demand_id) : true){
+            super._burn(msg.sender, demand_id);
+            delete _demands[demand_id];
+        }
     }
         
-    function burnMintedDemand() public {
+    function cleanMintedDemand() public {
         for(uint256 i = 0; i < balanceOf(msg.sender); i++){
             uint256 demand_id = tokenOfOwnerByIndex(msg.sender, i);
-            require(_isApprovedOrOwner(msg.sender, demand_id));
-            if(!_isMyTicket(demand_id)){
+            if(!_isOwnBoughtDemand(demand_id)){
                 burn(demand_id);
             }
         }
     }
     
     // If purchaser is msg.sender, return true
-    function _isMyTicket(uint256 demand_id) private view returns(bool){
+    function _isOwnBoughtDemand(uint256 demand_id) private view returns(bool){
         return (_demands[demand_id].purchaser==msg.sender);
     }
     
@@ -106,11 +107,15 @@ contract RideshareDemand is ERC721Enumerable{
         return (_demands[demand_id].purchaser!=address(0));
     }
     
+    function _isTimeOver(uint256 demand_id) private view returns(bool){
+        return (_demands[demand_id].est_date<=block.timestamp);
+    }
+    
     function approveAllMintedTickets() public {
         for(uint256 i = 0; i < balanceOf(msg.sender); i++){
             uint256 demand_id = tokenOfOwnerByIndex(msg.sender, i);
             require(_isApprovedOrOwner(msg.sender, demand_id));
-            if(!_isMyTicket(demand_id) && !_isPurchesed(demand_id)){
+            if(!_isOwnBoughtDemand(demand_id) && !_isPurchesed(demand_id)){
                 address purchaser = _demands[demand_id].purchaser;
                 approve(purchaser, demand_id);
             }
@@ -121,6 +126,7 @@ contract RideshareDemand is ERC721Enumerable{
         require(!_isPurchesed(demand_id));
         require(ownerOf(demand_id) != msg.sender);
         _demands[demand_id].purchaser = msg.sender;
+        emit BoughtDemand(demand_id, _demands[demand_id].price);
     }
     
     function getDemandInfo(uint256 demand_id)
@@ -141,7 +147,7 @@ contract RideshareDemand is ERC721Enumerable{
         ){
         Demand memory demand = _demands[demand_id];
         return(
-            _isMyTicket(demand_id),
+            _isOwnBoughtDemand(demand_id),
             _isPurchesed(demand_id),
             demand.item_id,
             demand.price,
@@ -183,14 +189,14 @@ contract RideshareDemand is ERC721Enumerable{
                 emit ChangeDemand(demand_id, "changed estimated time");
             }
             
-            if(bytes(dept_name).length!=0 && dept_lat!=0 && dept_lon!=0){
+            if(bytes(dept_name).length!=0 || dept_lat!=0 || dept_lon!=0){
                 _demands[demand_id].dept.name = dept_name;
                 _demands[demand_id].dept.latitude = dept_lat;
                 _demands[demand_id].dept.longitude = dept_lon;
                 emit ChangeDemand(demand_id, "changed departure spot");
             }
             
-            if(bytes(arrv_name).length!=0 && arrv_lat!=0 && arrv_lon!=0){
+            if(bytes(arrv_name).length!=0 || arrv_lat!=0 || arrv_lon!=0){
                 _demands[demand_id].arrv.name = arrv_name;
                 _demands[demand_id].arrv.latitude = arrv_lat;
                 _demands[demand_id].arrv.longitude = arrv_lon;
