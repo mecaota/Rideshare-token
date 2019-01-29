@@ -82,7 +82,7 @@ contract RideshareDemand is ERC721Enumerable{
         
     function burn(uint256 demand_id) public {
         require(_isApprovedOrOwner(msg.sender, demand_id));
-        if(_isPurchesed(demand_id) ? _isOwnBoughtDemand(demand_id)&&_isTimeOver(demand_id) : true){
+        if(_isBurnable(demand_id)){
             super._burn(msg.sender, demand_id);
             delete _demands[demand_id];
         }
@@ -95,6 +95,11 @@ contract RideshareDemand is ERC721Enumerable{
                 burn(demand_id);
             }
         }
+    }
+    
+    // If not purchased, return true. If purchased demand, bought and timeover demand is true. 
+    function _isBurnable(uint256 demand_id) private view returns(bool){
+        return _isPurchesed(demand_id) ? _isOwnBoughtDemand(demand_id)&&_isTimeOver(demand_id) : true;
     }
     
     // If purchaser is msg.sender, return true
