@@ -1,13 +1,14 @@
 pragma solidity ^0.5.2;
 
 import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/token/ERC721/ERC721Enumerable.sol";
+import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/payment/PullPayment.sol";
       
 /**
  * @title ERC721FullMock
  * This mock just provides a public mint and burn functions for testing purposes,
  * and a public setter for metadata URI
  */
-contract RideshareDemand is ERC721Enumerable{
+contract RideshareDemand is ERC721Enumerable, PullPayment{
     
     struct Spot{
         string name;
@@ -18,13 +19,13 @@ contract RideshareDemand is ERC721Enumerable{
     struct Demand{
         address purchaser;
         uint256 item_id;
-        uint32 price;
+        uint256 price;
         uint256 est_date;
         Spot dept;
         Spot arrv;
     }
     
-    event BoughtDemand(uint256 indexed demand_id, uint32 price);
+    event BoughtDemand(uint256 indexed demand_id, uint256 price);
     event ChangeDemand(uint256 indexed demand_id, string changed);
     //event TicketAuthorized(address indexed purchaser, address indexed minter, uint indexed demandId);
     
@@ -44,7 +45,7 @@ contract RideshareDemand is ERC721Enumerable{
     
     function mintDemands(
         uint8 passengers,
-        uint32 price,
+        uint256 price,
         uint256 est_date,
         string memory dept_name,
         int32 dept_latitude,
@@ -134,9 +135,12 @@ contract RideshareDemand is ERC721Enumerable{
         }
     }
     
-    function buyTicket(uint256 demand_id) public{
+    function buyTicket(uint256 demand_id) public payable {
         require(!_isPurchesed(demand_id));
         require(ownerOf(demand_id) != msg.sender);
+        require(_demands[demand_id].price == msg.value);
+        super._asyncTransfer(ownerOf(demand_id), msg.value);
+        _demands[demand_id].price = 0;
         _demands[demand_id].purchaser = msg.sender;
         emit BoughtDemand(demand_id, _demands[demand_id].price);
     }
@@ -148,7 +152,7 @@ contract RideshareDemand is ERC721Enumerable{
             bool,
             bool,
             uint256,
-            uint32,
+            uint256,
             uint256,
             string memory,
             int32,
@@ -175,7 +179,7 @@ contract RideshareDemand is ERC721Enumerable{
     
     function _updateDemandToken (
         uint256 item_id,
-        uint32 price,
+        uint256 price,
         uint256 est_date,
         string memory dept_name,
         int32 dept_lat,
